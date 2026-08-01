@@ -125,10 +125,53 @@ O projeto utiliza uma pipeline com múltiplos modelos de IA. Para detalhes técn
 | **Segmentação** | YOLOv8s-Seg | ✅ Validado | `mAP50: 0.99` |
 | **Regressão (Produção)** | Edge Impulse (MobileNet) | ✅ Em Produção | `MAE: 32.87 kg` |
 | **Regressão (Experimental)** | Fine-Tuning (MobileNet) | 🧪 Em Pesquisa | `MAE: 47.82 kg` |
+ 
+## Protótipos de Telas
+
+Abaixo estão as imagens de protótipo das telas principais do sistema, com uma breve descrição de cada uma. As imagens estão na pasta `prototipo-telas/`.
+
+1. **Tela de Login** — Split-screen com imagem ilustrativa e formulário de acesso (email/senha) à direita.
+	![Login](prototipo-telas/image%20%281%29.png)
+
+2. **Painel Principal (tema escuro)** — Visão geral do aplicativo com navegação superior e botão de nova avaliação.
+	![Painel escuro](prototipo-telas/image%20%282%29.png)
+
+3. **Perfil do Usuário (tema escuro)** — Página de conta com informações do usuário e configurações básicas.
+	![Perfil escuro](prototipo-telas/image%20%283%29.png)
+
+4. **Histórico de Avaliações (tema escuro)** — Filtros de busca, listagem e controles para gerenciar avaliações.
+	![Histórico escuro](prototipo-telas/image%20%284%29.png)
+
+5. **Suporte / Chat (tema claro)** — Interface de atendimento e sugestões rápidas para o usuário.
+	![Suporte](prototipo-telas/image%20%285%29.png)
+
+6. **Modal de Configurações** — Ajustes de parâmetros como calibração ótica, alertas e integração SMTP.
+	![Configurações](prototipo-telas/image%20%286%29.png)
+
+7. **Histórico (tema claro)** — Versão clara da tela de histórico com filtros e lista de registros.
+	![Histórico claro](prototipo-telas/image%20%287%29.png)
+
+8. **Resultado de Avaliação** — Detalhe de uma avaliação processada (anotações/skeleton) com veredito (APTO PARA ABATE).
+	![Resultado da avaliação](prototipo-telas/image%20%288%29.png)
+
+9. **Nova Avaliação (foto carregada)** — Modal de envio com foto já carregada, pronto para processar.
+	![Nova avaliação - foto carregada](prototipo-telas/image%20%289%29.png)
+
+10. **Nova Avaliação (upload)** — Área de upload/câmera para capturar ou enviar a imagem da região traseira.
+	 ![Upload de foto](prototipo-telas/image%20%2810%29.png)
+
+11. **Perfil (tema claro)** — Versão clara da página de perfil do usuário.
+	 ![Perfil claro](prototipo-telas/image%20%2811%29.png)
+
+12. **Criar Conta / Cadastro** — Formulário de registro com campos de nome, CRMV, e-mail e senha.
+	 ![Criar conta](prototipo-telas/image%20%2812%29.png)
+
+13. **Tela de Cadastro (alternativa)** — Outra variação do fluxo de criação de conta (layout responsivo).
+	 ![Cadastro alternativo](prototipo-telas/image%20%2813%29.png)
 
 ## Licença
 
-Este projeto está licenciado sob a **MIT License**. Veja o arquivo `LICENSE` para mais detalhes.
+Este projeto está licenciado sob a **MIT License**. Veja o arquivo LICENSE para mais detalhes.
 
 ## Autores
 
