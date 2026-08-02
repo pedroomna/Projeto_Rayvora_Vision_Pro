@@ -4,7 +4,6 @@
  */
 
 import React, { useState, useEffect, useMemo, ChangeEvent } from 'react';
-import { SAMPLE_CATTLE } from './data/samples';
 import { CattleRecord, ActiveTab, DashboardStats, UserProfile, AppNotification } from './types';
 import Header from './components/Header';
 import { Language, translations } from './translations';
@@ -17,7 +16,7 @@ import NewAssessmentModal from './components/NewAssessmentModal';
 import FooterModal from './components/FooterModal';
 import { ImageAdjusterModal } from './components/ImageAdjusterModal';
 import SupportChatView from './components/SupportChatView';
-import LoginView from './components/LoginView';
+import { LoginView } from './components/LoginView';
 import { validateCattleRecord } from './lib/schemas';
 
 import { Activity, ShieldAlert, BadgeCheck, Mail, MapPin, Award, Wifi, WifiOff, RefreshCw, User, Camera, Upload, Edit3, Save, X } from 'lucide-react';
@@ -119,8 +118,9 @@ export default function App() {
       const stored = localStorage.getItem('bovinovision_records');
       if (stored) {
         const parsed = JSON.parse(stored) as CattleRecord[];
-        if (parsed.length > 0) {
-          const mapped = parsed.map(r => {
+        const filtered = parsed.filter(r => !isDemoRecord(r));
+        if (filtered.length > 0) {
+          const mapped = filtered.map(r => {
             if (r.photoUrl && (r.photoUrl.includes('1484557052118-f32bd25b45b5') || r.photoUrl.includes('1543508282-6319a3e2621d'))) {
               return {
                 ...r,
@@ -135,11 +135,11 @@ export default function App() {
     } catch (e) {
       console.error('Error loading records from localStorage', e);
     }
-    return SAMPLE_CATTLE;
+    return [];
   });
 
   const displayRecords = useMemo(() => {
-    if (records.length === 0) return SAMPLE_CATTLE;
+    if (records.length === 0) return [];
     return realDataOnly ? records.filter(r => !isDemoRecord(r)) : records;
   }, [realDataOnly, records]);
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
@@ -151,7 +151,7 @@ export default function App() {
     } catch (e) {
       console.error('Error loading activeTab from localStorage', e);
     }
-    return 'assessments';
+    return 'dashboard';
   });
   const [currentSection, setCurrentSection] = useState<string>(() => {
     try {
@@ -166,12 +166,9 @@ export default function App() {
     try {
       const storedActiveId = localStorage.getItem('bovinovision_active_record_id');
       const storedRecords = localStorage.getItem('bovinovision_records');
-      let recordsList: CattleRecord[] = [];
-      if (storedRecords) {
-        recordsList = JSON.parse(storedRecords) as CattleRecord[];
-      } else {
-        recordsList = SAMPLE_CATTLE;
-      }
+      const recordsList: CattleRecord[] = storedRecords
+        ? JSON.parse(storedRecords) as CattleRecord[]
+        : [];
 
       if (storedActiveId && recordsList.length > 0) {
         const found = recordsList.find(r => r.id === storedActiveId);
@@ -183,8 +180,7 @@ export default function App() {
         }
       }
 
-      // Default to a non-apt animal if available (AB-9128)
-      const nonApto = recordsList.find(r => r.verdict === 'NÃO APTO') || SAMPLE_CATTLE.find(r => r.verdict === 'NÃO APTO');
+      const nonApto = recordsList.find(r => r.verdict === 'NÃO APTO');
       if (nonApto) return nonApto;
 
       if (recordsList.length > 0) {
@@ -196,7 +192,7 @@ export default function App() {
         return item;
       }
     } catch (e) {}
-    return SAMPLE_CATTLE.find(r => r.verdict === 'NÃO APTO') || SAMPLE_CATTLE[2];
+    return undefined;
   });
   const [modalOpen, setModalOpen] = useState(false);
   const [footerModalType, setFooterModalType] = useState<'terms' | 'privacy' | 'support' | null>(null);
@@ -282,29 +278,8 @@ export default function App() {
       if (rErr) {
         console.error("Supabase Records Fetch Error:", rErr);
       } else if (!dbRecords || dbRecords.length === 0) {
-        if (!finalProfile.hasSeeded) {
-          console.log("Supabase: Seeding default sample data...");
-          const seededRecords = SAMPLE_CATTLE.map(r => ({
-            ...r,
-            userId: uid
-          }));
-          for (const item of seededRecords) {
-            const dbItem = mapToSupabaseRecord(item, uid);
-            await supabase.from('cattle_records').insert([dbItem]);
-          }
-          await supabase
-            .from('user_profiles')
-            .update({ has_seeded: true })
-            .eq('uid', uid);
-          
-          setUserProfile(prev => ({ ...prev, hasSeeded: true }));
-          setRecords(seededRecords);
-          if (seededRecords.length > 0) {
-            setActiveRecord(seededRecords[0]);
-          }
-        } else {
-          setRecords([]);
-        }
+        setRecords([]);
+        setActiveRecord(undefined);
       } else {
         const mappedList = dbRecords.map(r => mapFromSupabaseRecord(r));
         setRecords(mappedList);
@@ -401,49 +376,8 @@ export default function App() {
             const q = query(collection(db, 'records'), where('userId', '==', user.uid));
             unsubRecords = onSnapshot(q, async (snapshot) => {
               if (snapshot.empty) {
-                // If the user has chosen to only use real data, do not seed mock data!
-                if (realDataOnly) {
-                  console.log("Real data mode is active - skipping mock database seeding.");
-                  setRecords([]);
-                  return;
-                }
-                // Deletion guard check: verify if user had seeded hasSeeded
-                try {
-                  const userDocSnap = await getDocFromServer(userDocRef);
-                  if (userDocSnap.exists()) {
-                    const cloudProfile = userDocSnap.data();
-                    if (cloudProfile && cloudProfile.hasSeeded) {
-                      console.log("No cloud records found but user already marked 'hasSeeded' once. Deletions are kept permanent.");
-                      setRecords([]);
-                      return;
-                    }
-                  }
-                } catch (err) {
-                  console.warn("Failed to check if user had already seeded hasSeeded flag on server:", err);
-                }
-
-                console.log("No cloud records found. Seeding default sample data for user for the first time...");
-                const seededRecords = SAMPLE_CATTLE.map(r => ({
-                  ...r,
-                  userId: user.uid
-                }));
-                for (const recordItem of seededRecords) {
-                  try {
-                    const validatedItem = validateCattleRecord(recordItem);
-                    await setDoc(doc(db, 'records', validatedItem.id), {
-                      ...validatedItem,
-                      userId: user.uid
-                    });
-                  } catch (e) {
-                    console.error(`Seeding record ${recordItem.id} failed:`, e);
-                  }
-                }
-
-                try {
-                  await setDoc(userDocRef, { hasSeeded: true }, { merge: true });
-                } catch (err) {
-                  console.error("Failed to update user profile hasSeeded status to prevent re-seeding:", err);
-                }
+                setRecords([]);
+                setActiveRecord(undefined);
               } else {
                 const list: CattleRecord[] = [];
                 snapshot.forEach((docSnap) => {
@@ -471,7 +405,7 @@ export default function App() {
                   return combined.sort((a, b) => (parseCattleDate(b.date) || 0) - (parseCattleDate(a.date) || 0));
                 });
                 setActiveRecord(prev => {
-                  if (!prev) return sortedList[0] || null;
+                  if (!prev) return sortedList[0] || undefined;
                   return sortedList.find(r => r.id === prev.id) || prev;
                 });
               }
@@ -482,50 +416,9 @@ export default function App() {
             // Subscribe and synchronize notifications
             const qNotif = query(collection(db, 'notifications'), where('userId', '==', user.uid));
             unsubNotifications = onSnapshot(qNotif, async (notifSnap) => {
-              const hasSeededKey = `bovinovision_seeded_notif_${user.uid}`;
-              const alreadySeeded = localStorage.getItem(hasSeededKey) === 'true';
-              
-              if (notifSnap.empty && !alreadySeeded) {
-                localStorage.setItem(hasSeededKey, 'true');
-                // Seed default notifications for this user in Firestore
-                const initialNotifs = [
-                  {
-                    id: 'init-1-' + user.uid.substring(0, 5),
-                    type: 'critical',
-                    message: 'Atenção: Animal #AB-8840 detectado abaixo do peso mínimo aceitável (320 kg). Requer acompanhamento imediato.',
-                    time: 'há 10 minutos',
-                    unread: true,
-                    userId: user.uid,
-                    createdAt: new Date().toISOString()
-                  },
-                  {
-                    id: 'init-2-' + user.uid.substring(0, 5),
-                    type: 'success',
-                    message: 'Sucesso: Novo registro de peso (4.5) integrado para o animal #AB-9255.',
-                    time: 'há 2 horas',
-                    unread: true,
-                    userId: user.uid,
-                    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-                  },
-                  {
-                    id: 'init-3-' + user.uid.substring(0, 5),
-                    type: 'notice',
-                    message: 'Dica de Manejo: Lote Norte - A atingiu 82% de aptidão para abate. Programe os lotes de confinamento.',
-                    time: 'há 1 dia',
-                    unread: false,
-                    userId: user.uid,
-                    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-                  }
-                ];
-                for (const notifItem of initialNotifs) {
-                  try {
-                    await setDoc(doc(db, 'notifications', notifItem.id), notifItem);
-                  } catch (err) {
-                    console.error("Failed to seed notification:", err);
-                  }
-                }
+              if (notifSnap.empty) {
+                setNotifications([]);
               } else {
-                // If it was explicitly empty (and we already seeded), we keep it empty instead of infinite re-seeding!
                 const list: AppNotification[] = [];
                 notifSnap.forEach((docSnap) => {
                   const d = docSnap.data();
@@ -539,10 +432,8 @@ export default function App() {
                   });
                 });
                 const sortedList = [...list].sort((a: any, b: any) => {
-                  const timeA = a.id.includes('init-') ? (a.id.includes('init-1') ? 3 : (a.id.includes('init-2') ? 2 : 1)) : 0;
-                  const timeB = b.id.includes('init-') ? (b.id.includes('init-1') ? 3 : (b.id.includes('init-2') ? 2 : 1)) : 0;
-                  if (timeA !== 0 || timeB !== 0) return timeB - timeA;
-                  return b.id.localeCompare(a.id);
+                  if (!a.createdAt || !b.createdAt) return b.id.localeCompare(a.id);
+                  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
                 });
                 setNotifications(sortedList);
               }
@@ -863,6 +754,12 @@ export default function App() {
       setActiveRecord(records[0]);
     }
   }, [realDataOnly, records, activeRecord]);
+
+  useEffect(() => {
+    if (records.length === 0 && activeTab === 'assessments') {
+      setActiveTab('dashboard');
+    }
+  }, [records.length, activeTab]);
   
   // Dashboard Metrics State (Computed from records in the system)
   const [stats, setStats] = useState<DashboardStats>({
@@ -993,42 +890,53 @@ export default function App() {
         });
 
         const contentType = res.headers.get('content-type') || '';
-        if (res.ok && contentType.includes('application/json')) {
-          const verified = await res.json() as CattleRecord;
-          const idx = updatedList.findIndex(r => r.id === pending.id);
-          if (idx !== -1) {
-            const syncedItem: CattleRecord = {
-              ...verified,
-              id: verified.id, // Auth ID from server
-              date: pending.date, // Retain capturing date
-              notes: `Sincronizado automaticamente da sessão offline com sucesso. Autenticado pelo fluxo local de visão.`
-            };
-            updatedList[idx] = syncedItem;
-            successfullySyncedCount++;
+        if (!contentType.includes('application/json')) {
+          const bodyText = await res.text();
+          console.error('Offline sync /api/analyze returned non-JSON response:', bodyText.slice(0, 300));
+          throw new Error(`Resposta inválida do servidor (${res.status}).`);
+        }
 
-            // Cloud persistence writes for the new verified record
-            const finalUid = auth?.currentUser?.uid || activeUser?.uid;
-            if (isFirebaseConfigured && db && finalUid) {
-              const liveRecord = {
-                ...syncedItem,
-                userId: finalUid
-              };
-              await setDoc(doc(db, 'records', verified.id), liveRecord);
-              // Cleanly prune old offline temp records from DB if they were saved (with different ID)
-              if (pending.id !== verified.id) {
-                try {
-                  await deleteDoc(doc(db, 'records', pending.id));
-                } catch (e) {}
-              }
+        const responseBody = await res.json().catch(() => null);
+        if (!res.ok) {
+          const errorMessage = responseBody?.error || responseBody?.message || `Erro do servidor: ${res.status}`;
+          console.error('Offline sync /api/analyze returned error payload:', responseBody);
+          throw new Error(errorMessage);
+        }
+
+        const verified = responseBody as CattleRecord;
+        const idx = updatedList.findIndex(r => r.id === pending.id);
+        if (idx !== -1) {
+          const syncedItem: CattleRecord = {
+            ...verified,
+            id: verified.id, // Auth ID from server
+            date: pending.date, // Retain capturing date
+            notes: `Sincronizado automaticamente da sessão offline com sucesso. Autenticado pelo fluxo local de visão.`
+          };
+          updatedList[idx] = syncedItem;
+          successfullySyncedCount++;
+
+          // Cloud persistence writes for the new verified record
+          const finalUid = auth?.currentUser?.uid || activeUser?.uid;
+          if (isFirebaseConfigured && db && finalUid) {
+            const liveRecord = {
+              ...syncedItem,
+              userId: finalUid
+            };
+            await setDoc(doc(db, 'records', verified.id), liveRecord);
+            // Cleanly prune old offline temp records from DB if they were saved (with different ID)
+            if (pending.id !== verified.id) {
+              try {
+                await deleteDoc(doc(db, 'records', pending.id));
+              } catch (e) {}
             }
-            if (isSupabaseConfigured && supabase && finalUid) {
-              const dbItem = mapToSupabaseRecord(syncedItem, finalUid);
-              await supabase.from('cattle_records').upsert([dbItem]);
-              if (pending.id !== verified.id) {
-                try {
-                  await supabase.from('cattle_records').delete().eq('id', pending.id);
-                } catch (e) {}
-              }
+          }
+          if (isSupabaseConfigured && supabase && finalUid) {
+            const dbItem = mapToSupabaseRecord(syncedItem, finalUid);
+            await supabase.from('cattle_records').upsert([dbItem]);
+            if (pending.id !== verified.id) {
+              try {
+                await supabase.from('cattle_records').delete().eq('id', pending.id);
+              } catch (e) {}
             }
           }
         }
@@ -1682,6 +1590,7 @@ export default function App() {
               setActiveTab('history');
               setCurrentSection('');
             }}
+            onNewAssessment={() => setModalOpen(true)}
             triggerRefreshInsights={refreshInsights}
             loadingInsights={loadingInsights}
             language={language}
@@ -1852,6 +1761,7 @@ export default function App() {
               setActiveTab('history');
               setCurrentSection('');
             }}
+            onNewAssessment={() => setModalOpen(true)}
             triggerRefreshInsights={refreshInsights}
             loadingInsights={loadingInsights}
             language={language}

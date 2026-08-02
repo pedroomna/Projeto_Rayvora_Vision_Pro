@@ -395,14 +395,22 @@ export default function NewAssessmentModal({ onClose, onAnalysisComplete, vetEma
       if (!contentType.includes('application/json')) {
         const textResponse = await res.text();
         console.error('Non-JSON response received from /api/analyze:', textResponse.slice(0, 300));
-        throw new Error('Servidor enviou uma resposta incompatível. Tente novamente em instantes.');
-      } else {
-        const responseData = await res.json();
-        if (!res.ok) {
-          throw new Error(responseData.error || responseData.message || 'Falha no processador de Visão de IA dos servidores Rayvora Vision Pro.');
-        }
-        analyzedRecord = responseData;
+        throw new Error(`O servidor retornou uma resposta inválida (${res.status}). Tente novamente em instantes.`);
       }
+
+      const responseData = await res.json();
+      if (!res.ok) {
+        const serverMessage = responseData?.error || responseData?.message || `Erro do servidor: ${res.status}`;
+        console.error('API /api/analyze returned error response:', res.status, responseData);
+        throw new Error(serverMessage);
+      }
+
+      if (!responseData || typeof responseData !== 'object') {
+        console.error('Unexpected JSON payload from /api/analyze:', responseData);
+        throw new Error('Resposta da análise inválida. Tente novamente em instantes.');
+      }
+
+      analyzedRecord = responseData;
 
       if ((analyzedRecord as any).animalDetected === false || (analyzedRecord as any).isRearView === false) {
         clearInterval(interval);

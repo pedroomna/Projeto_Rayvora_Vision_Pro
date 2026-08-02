@@ -457,34 +457,37 @@ export default function HistoryView({
   // into a solid UNIX timestamp to guarantee proper sort order on dashboards.
   const parseCattleDate = (dateStr: any): number => {
     if (typeof dateStr !== 'string' || !dateStr) return 0;
+  
     try {
-      const cleaned = dateStr.toLowerCase();
-      
-      // Extract year (typically 4 digits like 2026 or 2024)
-      const yearMatch = cleaned.match(/\b(20\d\d)\b/);
-      const year = yearMatch ? parseInt(yearMatch[1], 10) : 2026;
-
-      // Extract time (HH:MM)
-      const timeMatch = cleaned.match(/\b(\d{1,2}):(\d{2})\b/);
-      const hours = timeMatch ? parseInt(timeMatch[1], 10) : 12;
-      const minutes = timeMatch ? parseInt(timeMatch[2], 10) : 0;
-
-      // Extract day number
-      const dayMatch = cleaned.match(/\b(\d{1,2})\b/);
-      const day = dayMatch ? parseInt(dayMatch[1], 10) : 1;
-
-      // Find month
-      const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-      let monthIndex = 0;
-      for (let i = 0; i < months.length; i++) {
-        if (cleaned.includes(months[i])) {
-          monthIndex = i;
-          break;
-        }
+      // Normaliza a string de data: remove "de", vírgulas e espaços múltiplos.
+      // Ex: "11 de jun de 2026, 19:19" -> "11 jun 2026 19:19"
+      const cleaned = dateStr.toLowerCase().replace(/ de /g, ' ').replace(',', '').replace(/\s+/g, ' ').trim();
+      const parts = cleaned.split(' '); // ["11", "jun", "2026", "19:19"]
+  
+      if (parts.length < 4) {
+        // Tenta um parse direto se o formato for inesperado, pode funcionar em alguns casos.
+        const d = new Date(dateStr);
+        return isNaN(d.getTime()) ? 0 : d.getTime();
       }
-
-      return new Date(year, monthIndex, day, hours, minutes).getTime();
+  
+      const day = parseInt(parts[0], 10);
+      const year = parseInt(parts[2], 10);
+      const [hours, minutes] = parts[3].split(':').map(num => parseInt(num, 10));
+  
+      const months: { [key: string]: number } = {
+        'jan': 0, 'fev': 1, 'mar': 2, 'abr': 3, 'mai': 4, 'jun': 5,
+        'jul': 6, 'ago': 7, 'set': 8, 'out': 9, 'nov': 10, 'dez': 11,
+        'january': 0, 'february': 1, 'march': 2, 'april': 3, 'may': 4, 'june': 5,
+        'july': 6, 'august': 7, 'september': 8, 'october': 9, 'november': 10, 'december': 11
+      };
+  
+      const monthStr = Object.keys(months).find(m => parts[1].startsWith(m));
+      const monthIndex = monthStr ? months[monthStr] : 0;
+  
+      const d = new Date(year, monthIndex, day, hours, minutes);
+      return isNaN(d.getTime()) ? 0 : d.getTime();
     } catch (e) {
+      console.error(`Falha ao processar a data: "${dateStr}"`, e);
       return 0;
     }
   };

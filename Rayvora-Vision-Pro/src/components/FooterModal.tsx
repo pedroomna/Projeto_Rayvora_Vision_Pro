@@ -361,7 +361,7 @@ export default function FooterModal({ initialTab, onClose }: FooterModalProps) {
                 )}
 
                 {supportSendingState === 'success' && (
-                  <div className="py-8 px-6 bg-blue-50/50 dark:bg-blue-950/20 rounded-2xl border border-blue-105 border-blue-100 dark:border-blue-900/40 text-center flex flex-col items-center justify-center space-y-4 animate-scale-up">
+                  <div className="py-8 px-6 bg-blue-50/50 dark:bg-blue-950/20 rounded-2xl border border-blue-100 dark:border-blue-900/40 text-center flex flex-col items-center justify-center space-y-4 animate-scale-up">
                     <span className="p-3 bg-blue-100 dark:bg-blue-900/40 rounded-full text-blue-800 dark:text-sky-300">
                       <CheckCircle2 className="h-8 w-8" />
                     </span>
@@ -378,7 +378,7 @@ export default function FooterModal({ initialTab, onClose }: FooterModalProps) {
                         setSupportMessage('');
                         setSupportSendingState('idle');
                       }}
-                      className="mt-2 h-9 px-4 border border-blue-800/40 hover:border-blue-800 text-blue-800 dark:border-sky-305 dark:border-sky-300 dark:hover:border-sky-300 dark:text-sky-300 font-bold text-xs rounded-xl transition-all cursor-pointer focus:outline-none"
+                      className="mt-2 h-9 px-4 border border-blue-800/40 hover:border-blue-800 text-blue-800 dark:border-sky-300 dark:hover:border-sky-200 dark:text-sky-300 font-bold text-xs rounded-xl transition-all cursor-pointer focus:outline-none"
                     >
                       Criar Outro Chamado
                     </button>

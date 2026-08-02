@@ -21,6 +21,7 @@ import {
   Printer,
   RotateCcw,
   Scale,
+  Send,
   Share2,
   X,
 } from 'lucide-react';

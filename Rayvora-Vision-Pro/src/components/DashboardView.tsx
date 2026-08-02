@@ -13,10 +13,10 @@ import {
   RefreshCw, 
   Download,
   Database,
-  Camera
+  Camera,
+  Plus
 } from 'lucide-react';
 import { CattleRecord, DashboardStats } from '../types';
-import { SAMPLE_CATTLE } from '../data/samples';
 import { motion } from 'motion/react';
 import { translations, Language } from '../translations';
 import CameraTourGuideModal from './CameraTourGuideModal';
@@ -27,6 +27,7 @@ interface DashboardViewProps {
   recentRecords: CattleRecord[];
   onSelectRecord: (record: CattleRecord) => void;
   onNavigateToHistory: () => void;
+  onNewAssessment: () => void;
   triggerRefreshInsights: (fromTelemetry?: boolean) => Promise<void>;
   loadingInsights: boolean;
   language?: Language;
@@ -40,6 +41,7 @@ export default function DashboardView({
   recentRecords,
   onSelectRecord,
   onNavigateToHistory,
+  onNewAssessment,
   triggerRefreshInsights,
   loadingInsights,
   language = 'pt',
@@ -445,16 +447,23 @@ export default function DashboardView({
               {recentRecords.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-12 px-4 text-center">
-                    <div className="flex flex-col items-center justify-center max-w-md mx-auto text-center space-y-3">
+                    <div className="flex flex-col items-center justify-center max-w-md mx-auto text-center space-y-4">
                       <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-400">
                         <Database className="h-6 w-6" />
                       </div>
                       <div>
                         <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm">Nenhum animal registrado em tempo real</h4>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                          Você ativou o Modo de Dados 100% Reais. Para começar, envie fotos de campo de bovinos ou clique em Novo Registro no topo para criar sua primeira ficha de campo!
+                          Você ativou o modo de dados reais ou não há avaliações registradas ainda. Crie sua primeira avaliação para começar a visualização do rebanho.
                         </p>
                       </div>
+                      <button
+                        onClick={onNewAssessment}
+                        className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Nova Avaliação
+                      </button>
                     </div>
                   </td>
                 </tr>

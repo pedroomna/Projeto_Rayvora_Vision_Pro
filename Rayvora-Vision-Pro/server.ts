@@ -222,15 +222,26 @@ function fallbackBovineAnalysis(earTag: string, imageBase64: string) {
 
 // 3. Main Bovine Image Analysis Endpoint
 app.post('/api/analyze', async (req, res) => {
+  res.type('application/json');
   try {
     const { imageBase64, earTag, clientDate } = req.body;
 
     if (!imageBase64) {
-      return res.status(400).json({ error: 'Nenhuma imagem enviada para análise.' });
+      return res.status(400).json({
+        success: false,
+        code: 'MISSING_IMAGE',
+        message: 'Nenhuma imagem enviada para análise.',
+        error: 'Nenhuma imagem enviada para análise.'
+      });
     }
 
     if (!earTag || !String(earTag).trim()) {
-      return res.status(400).json({ error: 'Número do brinco é obrigatório.' });
+      return res.status(400).json({
+        success: false,
+        code: 'MISSING_EARTAG',
+        message: 'Número do brinco é obrigatório.',
+        error: 'Número do brinco é obrigatório.'
+      });
     }
 
     const cleanEarTag = String(earTag).trim();

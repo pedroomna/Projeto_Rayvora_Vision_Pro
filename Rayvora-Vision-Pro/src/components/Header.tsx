@@ -237,7 +237,7 @@ export default function Header({
 
   const handleSaveSettings = () => {
     if (userProfile) {
-      onProfileChange({
+      const updatedProfile = {
         ...userProfile,
         smtpConfig: {
           host: smtpHost,
@@ -247,7 +247,11 @@ export default function Header({
           pass: smtpPass,
           from: smtpFrom || smtpUser,
         }
-      });
+      };
+      onProfileChange(updatedProfile);
+      // Garante que o cache local seja atualizado imediatamente após salvar,
+      // para que as informações persistam ao recarregar a página.
+      localStorage.setItem('bovinovision_profile', JSON.stringify(updatedProfile));
     }
     setSaveSuccess(true);
     setTimeout(() => {
