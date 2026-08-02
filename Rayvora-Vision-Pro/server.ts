@@ -39,6 +39,16 @@ function getGeminiClient(): GoogleGenAI | null {
   return genAIClient;
 }
 
+function sendJsonError(res: express.Response, status: number, code: string, message: string, error?: string) {
+  res.type('application/json');
+  return res.status(status).json({
+    success: false,
+    code,
+    message,
+    error: error || message
+  });
+}
+
 // Helper to generate formatted 2026 date/time string
 function get2026DateTimeLong(): string {
   const now = new Date();
@@ -227,21 +237,11 @@ app.post('/api/analyze', async (req, res) => {
     const { imageBase64, earTag, clientDate } = req.body;
 
     if (!imageBase64) {
-      return res.status(400).json({
-        success: false,
-        code: 'MISSING_IMAGE',
-        message: 'Nenhuma imagem enviada para análise.',
-        error: 'Nenhuma imagem enviada para análise.'
-      });
+      return sendJsonError(res, 400, 'MISSING_IMAGE', 'Nenhuma imagem enviada para análise.');
     }
 
     if (!earTag || !String(earTag).trim()) {
-      return res.status(400).json({
-        success: false,
-        code: 'MISSING_EARTAG',
-        message: 'Número do brinco é obrigatório.',
-        error: 'Número do brinco é obrigatório.'
-      });
+      return sendJsonError(res, 400, 'MISSING_EARTAG', 'Número do brinco é obrigatório.');
     }
 
     const cleanEarTag = String(earTag).trim();
@@ -301,6 +301,7 @@ app.post('/api/analyze', async (req, res) => {
 
     if (analysisResult && (analysisResult.animalDetected === false || analysisResult.isRearView === false)) {
       return res.json({
+        success: true,
         animalDetected: false,
         isRearView: false,
         message: analysisResult.message || 'Aviso: Imagem recusada. O sistema permite exclusivamente fotos da parte traseira (garupa e posterior) do bovino. Envie uma foto focada na garupa do animal.',
@@ -335,9 +336,7 @@ app.post('/api/analyze', async (req, res) => {
     return res.json(record);
   } catch (error: any) {
     console.error('Erro na rota /api/analyze:', error);
-    return res.status(500).json({
-      error: 'Falha interna ao processar a imagem. Tente novamente.',
-    });
+    return sendJsonError(res, 500, 'INTERNAL_ANALYSIS_FAILURE', 'Falha interna ao processar a imagem. Tente novamente.', error?.message || String(error));
   }
 });
 
